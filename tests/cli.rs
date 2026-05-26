@@ -3,6 +3,8 @@ use std::io::Write;
 use std::path::{Path, PathBuf};
 
 use assert_cmd::Command;
+use image::GenericImageView;
+use image::ImageReader;
 use predicates::prelude::*;
 use tempfile::tempdir;
 use zip::write::FileOptions;
@@ -49,7 +51,7 @@ fn converts_basic_docx_to_markdown() {
 }
 
 #[test]
-fn extracts_supported_and_unsupported_media() {
+fn keeps_original_asset_when_png_conversion_fails() {
     let temp = tempdir().unwrap();
     let input = temp.path().join("media.docx");
     let output = temp.path().join("out");
@@ -86,16 +88,16 @@ fn extracts_supported_and_unsupported_media() {
     let markdown = fs::read_to_string(output.join("media.md")).unwrap();
     assert!(markdown.contains("Unsupported figure"));
     assert!(markdown.contains("[image1.emf](media_assets/image1.emf)"));
-    assert!(markdown.contains("[diagram.vsdx](media_assets/diagram.vsdx)"));
+    assert!(!markdown.contains("diagram.vsdx"));
     assert!(markdown.contains("![image2](media_assets/image2.png)"));
 
     assert!(output.join("media_assets/image1.emf").exists());
-    assert!(output.join("media_assets/diagram.vsdx").exists());
+    assert!(!output.join("media_assets/diagram.vsdx").exists());
     assert!(output.join("media_assets/image2.png").exists());
 
     let report = fs::read_to_string(output.join("media.report.json")).unwrap();
     assert!(report.contains("\"kind\": \"unsupported-image\""));
-    assert!(report.contains("\"kind\": \"embedded-package\""));
+    assert!(report.contains("PNG conversion failed"));
 }
 
 #[test]
@@ -118,6 +120,32 @@ fn converts_sample_proposal_directory_when_present() {
     assert!(output.join("S2-2602109.md").exists());
     assert!(output.join("S2-2600434.report.json").exists());
     assert!(output.join("S2-2602109.report.json").exists());
+
+    let (width, height) = image_dimensions(&output.join("S2-2600434_assets/image1.png"));
+    assert!(width < 794, "expected trimmed width, got {width}");
+    assert!(height < 1123, "expected trimmed height, got {height}");
+
+    let first = fs::read_to_string(output.join("S2-2600434.md")).unwrap();
+    let second = fs::read_to_string(output.join("S2-2602109.md")).unwrap();
+    assert!(!first.contains("Unsupported figure"));
+    assert!(!second.contains("Unsupported figure"));
+    assert!(!first.contains(".emf"));
+    assert!(!second.contains(".vsdx"));
+    assert!(first.contains("![image1](S2-2600434_assets/image1.png)"));
+    assert!(second.contains("![image16](S2-2602109_assets/image16.png)"));
+
+    let first_report = fs::read_to_string(output.join("S2-2600434.report.json")).unwrap();
+    let second_report = fs::read_to_string(output.join("S2-2602109.report.json")).unwrap();
+    assert!(first_report.contains("\"unsupported_assets\": []"));
+    assert!(second_report.contains("\"unsupported_assets\": []"));
+}
+
+fn image_dimensions(path: &Path) -> (u32, u32) {
+    ImageReader::open(path)
+        .unwrap()
+        .decode()
+        .unwrap()
+        .dimensions()
 }
 
 fn write_docx(path: &Path, body_xml: &str, relationships_xml: &str, files: &[(&str, &[u8])]) {
