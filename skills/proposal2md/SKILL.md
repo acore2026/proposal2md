@@ -11,6 +11,22 @@ description: Use when working with the proposal2md Rust CLI for converting 3GPP 
 
 The tool reads DOCX packages directly. It should not depend on Pandoc or Microsoft Office. LibreOffice Draw (`soffice`) is required when EMF, WMF, VSD, or VSDX figures need to become PNG files.
 
+## Prerequisites
+
+Install Rust and LibreOffice Draw before running real conversions or repository verification. LibreOffice must provide the `soffice` command; without it, text and tables can still convert, but EMF/WMF/Visio figures will fall back to warnings instead of PNG output.
+
+On Debian or Ubuntu:
+
+```bash
+sudo apt-get update
+sudo apt-get install libreoffice-draw
+soffice --version
+```
+
+On macOS, install LibreOffice and ensure the `soffice` binary is available on `PATH`.
+
+Before treating figure output as valid, run a sample conversion and check that generated Markdown references `.png` files rather than `.emf`, `.wmf`, `.vsd`, or `.vsdx` assets.
+
 ## Repository Orientation
 
 When inside the repository, read `AGENTS.md` and `README.md` first. The main code paths are:
