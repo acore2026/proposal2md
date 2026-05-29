@@ -1,8 +1,10 @@
 # proposal2md
 
 `proposal2md` converts 3GPP `.docx` proposal files into Markdown. It is a
-self-contained Rust CLI: it reads DOCX ZIP/XML directly and does not require
-Pandoc, LibreOffice, or Microsoft Office.
+Rust CLI that reads DOCX ZIP/XML directly; it does not require Pandoc or
+Microsoft Office. LibreOffice Draw is optional for ordinary text/table
+conversion, but required when EMF, WMF, VSD, or VSDX figures should be rendered
+as PNG images.
 
 ## Features
 
@@ -27,6 +29,8 @@ figures:
 sudo apt-get install libreoffice-draw
 ```
 
+Build and run from the repository:
+
 ```bash
 cargo run -- proposal -o out --overwrite
 ```
@@ -47,6 +51,13 @@ Run in strict mode to fail when unsupported figures or warnings are found:
 
 ```bash
 cargo run -- proposal/S2-2600434.docx -o out --strict
+```
+
+After building a release binary, use it directly:
+
+```bash
+cargo build --release
+target/release/proposal2md proposal -o out --overwrite
 ```
 
 ## Output

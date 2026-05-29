@@ -2,27 +2,28 @@
 
 ## Project Structure & Module Organization
 
-This repository currently contains a minimal root with `README.md` and no committed crate files yet. When implementation is added, use the standard Rust layout:
+This repository is a Rust CLI crate for converting 3GPP DOCX proposals to Markdown.
 
-- `Cargo.toml` for package metadata and dependencies.
-- `src/main.rs` for a CLI entry point, or `src/lib.rs` for reusable library logic.
-- `src/bin/` for additional command binaries.
-- `tests/` for integration tests.
-- `fixtures/` or `testdata/` for sample proposal inputs and expected Markdown outputs.
+- `src/main.rs` contains CLI argument parsing.
+- `src/lib.rs` exposes the public API and module surface.
+- `src/convert.rs`, `src/render.rs`, `src/docx.rs`, `src/word.rs`, and `src/figure.rs` contain the conversion pipeline.
+- `src/job.rs`, `src/markdown.rs`, and `src/types.rs` contain output planning, Markdown helpers, and shared types.
+- `tests/cli.rs` contains integration tests with synthetic DOCX fixtures and sample proposal smoke tests.
+- `proposal/` contains local sample DOCX inputs.
+- `tools/verify_public_3gpp_samples.sh` downloads and verifies a public 3GPP corpus.
 
-Keep parsing, conversion, and output formatting in separate modules where practical so behavior can be tested without invoking the CLI.
+Keep parsing, rendering, figure conversion, and filesystem/output planning in separate modules. Avoid growing `src/lib.rs`; it should remain a small public surface.
 
 ## Build, Test, and Development Commands
 
-Use Cargo commands once `Cargo.toml` exists:
-
 - `cargo build` compiles the project in debug mode.
-- `cargo run -- <args>` runs the local CLI with arguments.
+- `cargo run -- proposal -o out --overwrite` converts the local sample proposals.
 - `cargo test` runs unit and integration tests.
 - `cargo fmt --check` verifies Rust formatting.
 - `cargo clippy --all-targets --all-features -- -D warnings` runs lint checks with warnings treated as errors.
+- `tools/verify_public_3gpp_samples.sh` downloads 10 official 3GPP sample ZIPs into `/tmp` and verifies conversion output.
 
-If a command requires sample files, place them under `fixtures/` and reference them with relative paths.
+LibreOffice Draw (`soffice`) is required to convert EMF/WMF/VSD/VSDX figures to PNG. Without it, the converter should preserve originals and report warnings instead of silently losing figures.
 
 ## Coding Style & Naming Conventions
 
@@ -34,14 +35,14 @@ Prefer small, explicit functions over broad utility modules. Return `Result` fro
 
 Use Rust's built-in test framework. Put focused unit tests next to the code they exercise with `#[cfg(test)]`, and use `tests/` for end-to-end CLI or conversion behavior. Name tests after the expected behavior, for example `converts_heading_blocks_to_markdown`.
 
-Include fixture-based tests for representative proposal inputs, edge cases, and malformed input. Run `cargo test` before opening a pull request.
+Include fixture-based tests for representative proposal inputs, edge cases, malformed input, media conversion fallback, and PNG trimming. Run `cargo test` before opening a pull request. Run the public corpus script before releases or conversion-behavior changes.
 
 ## Commit & Pull Request Guidelines
 
-The current history only shows an initial commit, so no project-specific commit convention is established. Use concise, imperative commit subjects such as `Add proposal parser` or `Handle empty sections`.
+Use concise, imperative commit subjects such as `Refactor renderer modules` or `Trim converted figure margins`.
 
 Pull requests should include a short description, the commands run for verification, and linked issues when applicable. For output-format changes, include a before/after Markdown example or reference the updated fixture.
 
 ## Agent-Specific Instructions
 
-Keep generated changes narrow and avoid introducing build systems or dependencies without a clear project need. Do not modify unrelated files when adding documentation, tests, or implementation.
+Keep generated changes narrow and avoid introducing build systems or dependencies without a clear project need. Do not commit generated `out/` files or temporary public corpus downloads from `/tmp`. Do not modify unrelated files when adding documentation, tests, or implementation.
